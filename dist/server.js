@@ -50,7 +50,9 @@ var SubscriptionServer = (function () {
                 }
                 _this.onClose(connectionContext);
                 if (_this.onDisconnect) {
-                    _this.onDisconnect(socket, connectionContext);
+                    Promise.resolve(_this.onDisconnect(socket, connectionContext)).catch(function (err) {
+                        console.error('Error in onDisconnect:', err);
+                    });
                 }
             };
             socket.on('error', connectionClosedHandler);

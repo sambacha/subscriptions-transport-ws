@@ -1204,6 +1204,7 @@ describe('Client', function () {
     });
 });
 describe('Server', function () {
+    var _this = this;
     var onOperationSpy;
     var server;
     beforeEach(function () {
@@ -1918,6 +1919,38 @@ describe('Server', function () {
                 type: message_types_1.default.INIT,
             }));
         };
+    });
+    it('should work with async failing onDisconnect', function (done) {
+        var connectionCallbackSpy = sinon.spy();
+        var httpServerForError = http_1.createServer(notFoundRequestListener);
+        httpServerForError.listen(ERROR_TEST_PORT);
+        new server_1.SubscriptionServer({
+            schema: schema,
+            execute: graphql_1.execute,
+            onConnect: function () {
+                throw new Error('failed');
+            },
+            onDisconnect: function (_ws, connectionContext) { return __awaiter(_this, void 0, void 0, function () {
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0: return [4, connectionContext.initPromise];
+                        case 1:
+                            _a.sent();
+                            return [2];
+                    }
+                });
+            }); },
+        }, { server: httpServerForError });
+        onConnectErrorOptions.isLegacy = false;
+        var subscriptionsClient = new client_1.SubscriptionClient("ws://localhost:" + ERROR_TEST_PORT + "/", {
+            connectionCallback: connectionCallbackSpy,
+        });
+        setTimeout(function () {
+            chai_1.expect(connectionCallbackSpy.calledOnce).to.be.true;
+            chai_1.expect(connectionCallbackSpy.getCall(0).args[0]).to.eql({ message: 'failed' });
+            subscriptionsClient.close();
+            done();
+        }, 200);
     });
 });
 describe('Message Types', function () {
